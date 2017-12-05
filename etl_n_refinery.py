@@ -1,7 +1,7 @@
 # Raw data
 import pandas as pd
 
-historical_data_link = "nfl_historical_data.csv"
+historical_data_link = "nba_historical_data.csv"
 dataframe = pd.read_csv(historical_data_link)
 dataframe.tail(10)
 dataframe.describe()
@@ -11,10 +11,13 @@ import pandas_profiling as profiler
 import webbrowser as browser
 import os
 
-html = historical_data_link + ".profile.html"
-profiler.ProfileReport(dataframe).to_file(html)
-browser.open('file://' + os.path.realpath(html))
+def show_profile(dataframe):
+    html = historical_data_link + ".profile.html"
+    profiler.ProfileReport(dataframe).to_file(html)
+    browser.open('file://' + os.path.realpath(html))
+    return
 
+show_profile(dataframe)
 # clean and transform
 dataframe.rename(index=str, columns={
     "team_1_name": "home_team",
@@ -33,7 +36,8 @@ dataframe['hour'] = \
     dataframe.time_stamp.dt.day, \
     dataframe.time_stamp.dt.hour
 dataframe.dtypes # show schema
-all_teams = dataframe['home_team'].values
+show_profile(dataframe)
+all_teams = pd.unique(dataframe[['home_team','guess_team']].values.ravel('K'))
 
 #  linear regression
 from sklearn import linear_model
