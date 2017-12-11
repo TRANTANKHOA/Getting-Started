@@ -40,7 +40,6 @@ dataframe[hour] = \
     dataframe.time_stamp.dt.month, \
     dataframe.time_stamp.dt.day, \
     dataframe.time_stamp.dt.hour
-dataframe.dtypes  # show schema
 show_profile(dataframe)
 
 # create a table of features for each team
@@ -48,7 +47,10 @@ is_home, opponent, score, gain, match_count, mean_gain, min_gain, max_gain, sigm
     'is_home', 'opponent', 'score', 'gain', 'match_count', 'mean_gain', 'min_gain', 'max_gain', 'sigma_gain', 'mean_score', 'min_score', 'max_score', 'sigma_score'
 
 all_teams = pd.unique(dataframe[[home_team, guess_team]].values.ravel('K'))
-def build_table_for(team):
+
+
+def build_profile(team):
+    print("Start with", team)
     filtered_df = dataframe[
         (dataframe[home_team] == team) | (dataframe[guess_team] == team)
         ]
@@ -72,62 +74,68 @@ def build_table_for(team):
         (filtered_df.opponent == row.opponent) & (filtered_df.time_stamp < row.time_stamp)
         ]
 
-    def previous_vals_with_same_opponent(row,column): return previous_rows_with_same_opponent(row)[column]
+    def previous_vals_with_same_opponent(row, column): return previous_rows_with_same_opponent(row)[column]
 
     filtered_df[match_count] = filtered_df.apply(
         func=lambda row: previous_rows_with_same_opponent(row).shape[0], axis=1
     )
 
     filtered_df[mean_gain] = filtered_df.apply(
-        func=lambda row: previous_vals_with_same_opponent(row,gain).mean(), axis=1
+        func=lambda row: previous_vals_with_same_opponent(row, gain).mean(), axis=1
     ).fillna(0)
 
     filtered_df[min_gain] = filtered_df.apply(
-        func=lambda row: previous_vals_with_same_opponent(row,gain).min(), axis=1
+        func=lambda row: previous_vals_with_same_opponent(row, gain).min(), axis=1
     ).fillna(0)
 
     filtered_df[max_gain] = filtered_df.apply(
-        func=lambda row: previous_vals_with_same_opponent(row,gain).max(), axis=1
+        func=lambda row: previous_vals_with_same_opponent(row, gain).max(), axis=1
     ).fillna(0)
 
     import math
     filtered_df[sigma_gain] = filtered_df.apply(
-        func=lambda row: math.sqrt(previous_vals_with_same_opponent(row,gain).var()), axis=1
+        func=lambda row: math.sqrt(previous_vals_with_same_opponent(row, gain).var()), axis=1
     ).fillna(0)
 
     filtered_df[mean_score] = filtered_df.apply(
-        func=lambda row: previous_vals_with_same_opponent(row,score).mean(), axis=1
+        func=lambda row: previous_vals_with_same_opponent(row, score).mean(), axis=1
     ).fillna(0)
 
     filtered_df[min_score] = filtered_df.apply(
-        func=lambda row: previous_vals_with_same_opponent(row,score).min(), axis=1
+        func=lambda row: previous_vals_with_same_opponent(row, score).min(), axis=1
     ).fillna(0)
 
     filtered_df[max_score] = filtered_df.apply(
-        func=lambda row: previous_vals_with_same_opponent(row,score).max(), axis=1
+        func=lambda row: previous_vals_with_same_opponent(row, score).max(), axis=1
     ).fillna(0)
 
-    import math
     filtered_df[sigma_score] = filtered_df.apply(
-        func=lambda row: math.sqrt(previous_vals_with_same_opponent(row,score).var()), axis=1
+        func=lambda row: math.sqrt(previous_vals_with_same_opponent(row, score).var()), axis=1
     ).fillna(0)
 
     filtered_df.drop([home_team, home_score, guess_team, guess_score], axis=1, inplace=True)
 
-    return filtered_df
-chicago = build_table_for('Chicago Bulls')
-chicago[[opponent, match_count, mean_gain, min_gain, max_gain, sigma_gain, mean_score, min_score, max_score, sigma_score]]\
-    .sort_values([opponent, match_count], ascending=[True, True])\
-    .tail(50)
-for team in all_teams:
-    show_profile(build_table_for(team))
+    print("End with", team)
+    return filtered_df.sort_values([opponent, match_count], ascending=[True, True])
+
+
+chicago = build_profile('Chicago Bulls')
+chicago.tail()
+chicago.plot(kind='scatter', x='d_ability_1', y='score')
+chicago.groupby(opponent).gain.agg(['min', 'max', 'mean'])['mean'].plot()
+
+show_profile(chicago)
+
+teams_profiles = [build_profile(team) for team in all_teams]
 
 # linear regression
 from sklearn import linear_model
 
 regr = linear_model.LinearRegression()
+
 import numpy as np
 
 numArray = np.asarray(dataframe)
+
 features = numArray[:, ]
 regr.fit()
